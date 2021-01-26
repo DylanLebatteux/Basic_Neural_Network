@@ -10,10 +10,10 @@ from sklearn.utils import shuffle
 from sklearn.metrics import confusion_matrix
 from tensorflow.keras.optimizers import Adam
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.metrics import plot_confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay
 from tensorflow.keras.layers import Activation, Dense
 from tensorflow.keras.metrics import categorical_crossentropy
-from tensorflow.keras.models import Sequential, load_model, model_from_json
+from tensorflow.keras.models import Sequential, load_model, model_from_json, model_from_yaml
 
 # Initialize data
 X_train = []
@@ -96,10 +96,11 @@ print("Train labels shape:", y_train.shape)
 # Check the number of available GPUs
 physical_devices = tf.config.experimental.list_physical_devices("GPU")
 print("Number of GPUs Available:", len(physical_devices))
+
 # Set if memory growth should be enabled for a PhysicalDevice
 if physical_devices: tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
-# Initialize model
+# Built model
 model = Sequential([Dense(units = 16, input_shape = (1, ), activation = "relu"),
 					Dense(units = 32, activation = "relu"),
 					Dense(units = 2, activation = "softmax")])
@@ -111,7 +112,7 @@ model.summary()
 model.compile(optimizer = Adam(learning_rate = 0.0001), loss = "sparse_categorical_crossentropy", metrics = ["accuracy"])
 
 # Fit the model
-model.fit(x = X_train, y = y_train, validation_split = 0.1, batch_size = 10, epochs = 30, shuffle = True, verbose = 2)
+model.fit(x = X_train, y = y_train, validation_split = 0.1, batch_size = 10, epochs = 30, shuffle = True, verbose = 1)
 
 # Predict using the model
 y_pred = model.predict(x = X_test, batch_size = 10, verbose = 0)
@@ -122,36 +123,13 @@ y_pred = numpy.argmax(y_pred, axis = -1)
 # Confusion matrix
 cm = confusion_matrix(y_true = y_test, y_pred = y_pred)
 
-# Fonction to plot confusion matrix
-def plot_confusion_matrix(cm, cm_plot_labels, normalize, title, cmap):
-	plt.imshow(cm, interpolation = "nearest", cmap = cmap)
-	plt.title(title)
-	plt.colorbar()
-	tick_marks = numpy.arange(len(cm_plot_labels))
-	plt.xticks(tick_marks, cm_plot_labels, rotation = 45)
-	plt.yticks(tick_marks, cm_plot_labels)
-
-	if normalize:
-		cm = cm.astype("float") / cm.sum(axis = 1)[:, numpy.newaxis]
-		print("Normalized confusion matrix")
-	else:
-		print('Confusion matrix, without normalization')
-
-	print(cm)
-
-	thresh = cm.max() / 2.
-	for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-		if i == 0: plt.text(j, i + 0.25, cm[i, j], horizontalalignment = "left", verticalalignment = "baseline", color = "black" )
-		else: plt.text(j, i - 0.25, cm[i, j], horizontalalignment = "left", verticalalignment = "baseline", color = "black")
-	plt.tight_layout()
-	plt.ylabel("True label")
-	plt.xlabel("Predicted label")
-	plt.show()
-
 # Set the labels
 cm_plot_labels = ["No_Side_Effects", "Had_Side_Effects"]
+
 # Plot the confusion matrix
-plot_confusion_matrix(cm = cm, cm_plot_labels = cm_plot_labels, normalize = False, title = "Confusion matrix", cmap = plt.cm.Blues)
+disp = ConfusionMatrixDisplay(confusion_matrix = cm, display_labels = cm_plot_labels)
+disp = disp.plot()
+plt.show()
 
 # Save model
 if os.path.isfile("models/medical_trial_model.h5") is False:
